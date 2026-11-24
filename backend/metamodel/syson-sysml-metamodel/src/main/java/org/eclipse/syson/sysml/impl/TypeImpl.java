@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023, 2025 Obeo.
+ * Copyright (c) 2023, 2026 Obeo.
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -648,6 +648,11 @@ public class TypeImpl extends NamespaceImpl implements Type {
      */
     @Override
     public FeatureDirectionKind directionOfExcluding(Feature feature, EList<Type> excluded) {
+        if (feature == null || feature.getDirection() == null) {
+            // The only non-null result comes from feature.getDirection() on its owning type (possibly flipped by a
+            // conjugation), so an undirected feature never needs the supertype traversal.
+            return null;
+        }
         FeatureDirectionKind directionOfExcluding = null;
         EList<Type> excludedSelf = new BasicEList<>();
         excludedSelf.addAll(excluded);

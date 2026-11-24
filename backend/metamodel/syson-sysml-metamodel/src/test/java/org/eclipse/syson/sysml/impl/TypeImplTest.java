@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024, 2025 Obeo.
+ * Copyright (c) 2024, 2026 Obeo.
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,15 +13,22 @@
 package org.eclipse.syson.sysml.impl;
 
 import static org.eclipse.syson.sysml.util.TestUtils.assertContentEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.eclipse.emf.common.util.BasicEList;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.syson.sysml.AttributeDefinition;
 import org.eclipse.syson.sysml.AttributeUsage;
+import org.eclipse.syson.sysml.FeatureDirectionKind;
 import org.eclipse.syson.sysml.LibraryPackage;
 import org.eclipse.syson.sysml.Namespace;
 import org.eclipse.syson.sysml.Package;
 import org.eclipse.syson.sysml.PartDefinition;
+import org.eclipse.syson.sysml.Type;
 import org.eclipse.syson.sysml.VisibilityKind;
 import org.eclipse.syson.sysml.util.ModelBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -304,5 +311,43 @@ public class TypeImplTest {
          **/
 
         assertTrue(testModel.attr0.specializesFromLibrary("MyLibrary::baseAttribute"));
+    }
+
+    @DisplayName("Check direction of owned, inherited and undirected features")
+    @Test
+    public void directionOf() {
+        var testModel = new TestModel();
+        testModel.attr0.setDirection(FeatureDirectionKind.IN);
+        testModel.attr1.setDirection(FeatureDirectionKind.OUT);
+
+        assertEquals(FeatureDirectionKind.IN, testModel.superSuperDef.directionOf(testModel.attr0));
+        assertEquals(FeatureDirectionKind.IN, testModel.subDef.directionOf(testModel.attr0));
+        assertEquals(FeatureDirectionKind.OUT, testModel.subDef.directionOf(testModel.attr1));
+        assertNull(testModel.subDef.directionOf(testModel.privateAttr));
+        assertNull(testModel.megaDef.directionOf(testModel.attr0));
+        assertNull(testModel.subDef.directionOf(null));
+        assertContentEquals(testModel.subDef.getInput(), testModel.attr0);
+        assertContentEquals(testModel.subDef.getOutput(), testModel.attr1);
+    }
+
+    @DisplayName("Check that direction of an undirected feature is computed without walking the supertypes")
+    @Test
+    public void directionOfUndirectedFeatureSkipsSupertypes() {
+        var testModel = new TestModel();
+        var supertypesCalls = new AtomicInteger();
+        var type = new PartDefinitionImpl() {
+            @Override
+            public EList<Type> supertypes(boolean excludeImplied) {
+                supertypesCalls.incrementAndGet();
+                return new BasicEList<>();
+            }
+        };
+
+        assertNull(type.directionOf(testModel.attr0));
+        assertEquals(0, supertypesCalls.get());
+
+        testModel.attr0.setDirection(FeatureDirectionKind.IN);
+        assertNull(type.directionOf(testModel.attr0));
+        assertEquals(1, supertypesCalls.get());
     }
 }
