@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024, 2025 Obeo.
+ * Copyright (c) 2024, 2026 Obeo.
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,11 +13,14 @@
 package org.eclipse.syson.sysml.impl;
 
 import static org.eclipse.syson.sysml.util.TestUtils.assertContentEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.syson.sysml.AttributeDefinition;
 import org.eclipse.syson.sysml.AttributeUsage;
+import org.eclipse.syson.sysml.FeatureDirectionKind;
 import org.eclipse.syson.sysml.LibraryPackage;
 import org.eclipse.syson.sysml.Namespace;
 import org.eclipse.syson.sysml.Package;
@@ -304,5 +307,22 @@ public class TypeImplTest {
          **/
 
         assertTrue(testModel.attr0.specializesFromLibrary("MyLibrary::baseAttribute"));
+    }
+
+    @DisplayName("Check direction of owned, inherited and undirected features")
+    @Test
+    public void directionOf() {
+        var testModel = new TestModel();
+        testModel.attr0.setDirection(FeatureDirectionKind.IN);
+        testModel.attr1.setDirection(FeatureDirectionKind.OUT);
+
+        assertEquals(FeatureDirectionKind.IN, testModel.superSuperDef.directionOf(testModel.attr0));
+        assertEquals(FeatureDirectionKind.IN, testModel.subDef.directionOf(testModel.attr0));
+        assertEquals(FeatureDirectionKind.OUT, testModel.subDef.directionOf(testModel.attr1));
+        assertNull(testModel.subDef.directionOf(testModel.privateAttr));
+        assertNull(testModel.megaDef.directionOf(testModel.attr0));
+        assertNull(testModel.subDef.directionOf(null));
+        assertContentEquals(testModel.subDef.getInput(), testModel.attr0);
+        assertContentEquals(testModel.subDef.getOutput(), testModel.attr1);
     }
 }
